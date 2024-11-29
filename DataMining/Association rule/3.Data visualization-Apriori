@@ -1,0 +1,159 @@
+#將上下車頻繁式集拆解後，重新命名欄位名稱
+import csv
+import chardet
+import os
+
+def detect_encoding(file_path):
+    with open(file_path, 'rb') as f:
+        result = chardet.detect(f.read())
+    return result['encoding']
+
+def split_row_by_delimiter(row, delimiter=' -> '):
+    return [item.split(delimiter) for item in row]
+
+def flatten_nested_list(nested_list):
+    return [item for sublist in nested_list for item in sublist]
+
+def add_header_to_file(file_path, new_header, output_file):
+    try:
+        input_encoding = detect_encoding(file_path)
+
+        with open(file_path, 'r', newline='', encoding=input_encoding) as csvfile_in, \
+                open(output_file, 'w', newline='', encoding='utf-8-sig') as csvfile_out:
+
+            csv_reader = csv.reader(csvfile_in, delimiter=',')
+            csv_writer = csv.writer(csvfile_out, delimiter=',', quoting=csv.QUOTE_MINIMAL, quotechar='"', lineterminator='\n')
+
+            original_header = next(csv_reader, None)
+
+            csv_writer.writerow(new_header)
+
+            for row in csv_reader:
+                split_row = split_row_by_delimiter(row)
+                flat_row = flatten_nested_list(split_row)
+                csv_writer.writerow(flat_row)
+
+        print(f"Header added to {file_path}, and data (excluding original header) written to {output_file}.")
+
+    except UnicodeDecodeError as e:
+        print(f"Error decoding file {file_path}: {e}")
+    except Exception as e:
+        print(f"An unexpected error occurred: {e}")
+
+def process_multiple_files(input_folder, output_folder, new_header):
+    input_files = [f for f in os.listdir(input_folder) if f.endswith('.csv')]
+
+    for input_file in input_files:
+        input_file_path = os.path.join(input_folder, input_file)
+        output_file_path = os.path.join(output_folder, input_file)
+        add_header_to_file(input_file_path, new_header, output_file_path)
+
+if __name__ == "__main__":
+    input_folder_path = '/Users/ryanma/Desktop/關聯式法則/Confidence' #自行替換信賴度與提升度
+    output_folder_path = '/Users/ryanma/Desktop/關聯式法則/Confidence/製表結果'
+    new_header = ["上車", "下車", "Support", "Confidence", "Lift"]
+    process_multiple_files(input_folder_path, output_folder_path, new_header)
+
+#對多筆資料進行上述操作
+import csv
+import chardet
+import os
+
+def detect_encoding(file_path):
+    with open(file_path, 'rb') as f:
+        result = chardet.detect(f.read())
+    return result['encoding']
+
+def split_row_by_delimiter(row, delimiter=' -> '):
+    return [item.split(delimiter) for item in row]
+
+def flatten_nested_list(nested_list):
+    return [item for sublist in nested_list for item in sublist]
+
+def split_and_remove_second_row(input_file, output_file):
+    try:
+        input_encoding = detect_encoding(input_file)
+
+        with open(input_file, 'r', newline='', encoding=input_encoding) as csvfile_in, \
+                open(output_file, 'w', newline='', encoding='utf-8-sig') as csvfile_out:
+
+            csv_reader = csv.reader(csvfile_in, delimiter=',')
+            csv_writer = csv.writer(csvfile_out, delimiter=',', quoting=csv.QUOTE_MINIMAL, quotechar='"', lineterminator='\n')
+
+            for index, row in enumerate(csv_reader):
+                if index != 1:  # Skip the second row
+                    split_row = split_row_by_delimiter(row)
+                    flat_row = flatten_nested_list(split_row)
+                    csv_writer.writerow(flat_row)
+
+        print(f"Data from {input_file} has been successfully split, second row removed, and written to {output_file}.")
+
+    except UnicodeDecodeError as e:
+        print(f"Error decoding file {input_file}: {e}")
+    except Exception as e:
+        print(f"An unexpected error occurred: {e}")
+
+def process_multiple_files(input_folder, output_folder):
+    input_files = [f for f in os.listdir(input_folder) if f.endswith('.csv')]
+
+    for input_file in input_files:
+        input_file_path = os.path.join(input_folder, input_file)
+        output_file_path = os.path.join(output_folder, f"{input_file}")
+        split_and_remove_second_row(input_file_path, output_file_path)
+
+if __name__ == "__main__":
+    input_folder_path = '/Users/ryanma/Desktop/關聯式法則/Confidence'
+    output_folder_path = '/Users/ryanma/Desktop/關聯式法則/Confidence/製表結果'
+    process_multiple_files(input_folder_path, output_folder_path)
+
+#將信賴度、提升度製表輸出（取前十筆）
+import os
+import pandas as pd
+import matplotlib.pyplot as plt
+from matplotlib.colors import Normalize
+
+def plot_association_table(input_folder, output_folder):
+    os.makedirs(output_folder, exist_ok=True)
+    for file_name in os.listdir(input_folder):
+        if file_name.endswith('.csv'):
+            csv_file_path = os.path.join(input_folder, file_name)
+            df = pd.read_csv(csv_file_path)
+            df_rounded = df.round(3)
+            data_values = df_rounded.values.tolist()
+
+            fig, ax = plt.subplots(figsize=(4, 3))
+            ax.axis('tight')
+            ax.axis('off')
+
+            table = ax.table(cellText=data_values, colLabels=df_rounded.columns, cellLoc='center', loc='center')
+
+            font_size = 8
+            line_spacing_factor = 0.8
+            table.auto_set_font_size(False)
+            table.set_fontsize(font_size * line_spacing_factor)
+
+            table.auto_set_column_width([i for i in range(len(df_rounded.columns))])
+
+            lift_values = df_rounded['Confidence']
+            norm = Normalize(vmin=lift_values.min(), vmax=lift_values.max())
+            colors = plt.cm.Oranges(norm(lift_values))
+
+            colors = [(0.9, 0.9, 0.9)] + list(colors) 
+
+            for j in range(1, len(df_rounded)):
+                cell = table[j, df_rounded.columns.get_loc('Confidence')]
+                cell.set_facecolor(colors[j])
+
+            for i in range(len(df_rounded.columns)):
+                cell = table[0, i]
+                cell.set_facecolor((0.8, 0.8, 0.8)) 
+
+            output_file_path = os.path.join(output_folder, f"{os.path.splitext(file_name)[0]}_output.png")
+            dpi = 300
+            plt.savefig(output_file_path, dpi=dpi)
+            plt.close()
+
+input_folder = '/Users/ryanma/Desktop/關聯式法則/Confidence/製表結果' #自行更換
+output_folder = '/Users/ryanma/Desktop/製圖/apyori結果/Confidence'
+
+plot_association_table(input_folder, output_folder)
