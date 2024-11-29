@@ -41,3 +41,32 @@ input_data['hour_deboarding'] = input_data['deboardingtime'].dt.hour
 
 input_data.to_csv(output_file_path, index=False)
 print(input_data)
+
+#再次抽取欄位，因轉換後的小時資料是加在原始數據後面
+import pandas as pd
+import glob
+import os
+
+csv_files_path = '/Users/ryanma/Desktop/output.csv'
+csv_files = glob.glob(csv_files_path)
+
+columns_to_extract = ['hour_boarding', 'hour_deboarding','Total_Kilometers'] #新的上下車時間欄位
+
+output_directory = '/Users/ryanma/Desktop/K means'
+os.makedirs(output_directory, exist_ok=True)
+
+for file_path in csv_files:
+    current_df = pd.read_csv(file_path, encoding='utf-8')
+    
+    print(f"Processing file: {file_path}")
+    print(f"Columns in current_df: {current_df.columns}")
+    
+    extracted_columns = current_df[columns_to_extract]
+
+    print(f"Shape of extracted_columns: {extracted_columns.shape}")
+
+    file_name = os.path.basename(file_path)
+    output_filename = os.path.join(output_directory, file_name)
+    
+    extracted_columns.to_csv(output_filename, index=False, encoding='utf-8-sig')
+    print(f"Extraction and saving completed. File saved as: {output_filename}")
