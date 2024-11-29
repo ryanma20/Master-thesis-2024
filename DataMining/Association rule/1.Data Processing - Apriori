@@ -1,0 +1,86 @@
+#合併兩個表格
+import pandas as pd
+
+df1 = pd.read_csv('/Users/ryanma/Desktop/距離總表.csv')
+df2 = pd.read_csv('/Users/ryanma/Desktop/K means.csv')
+
+# Concatenate the data horizontally
+result = pd.concat([df1, df2], axis=1)
+
+result.to_csv('/Users/ryanma/Desktop/combined.csv', index=False)
+
+print(result)
+
+#將欄位『類群』改成『group』
+import pandas as pd
+
+file_path = '/Users/ryanma/Desktop/K means result.csv'
+df = pd.read_csv(file_path)
+
+print("Current column names:")
+print(df.columns)
+
+old_column_name = '類群'
+new_column_name = 'group_'
+df = df.rename(columns={old_column_name: new_column_name})
+
+# Display the updated column names
+print("\nUpdated column names:")
+print(df.columns)
+
+# Save the DataFrame back to a new CSV file
+new_file_path = '/Users/ryanma/Desktop/data.csv'
+df.to_csv(new_file_path, index=False)
+
+print(f"\nDataFrame with updated column names saved to: {new_file_path}")
+
+#抽取上下車站牌、集群
+import pandas as pd
+import glob
+import os
+
+csv_files_path = '/Users/ryanma/Desktop/關聯式法則/各集群原始檔'
+csv_files = glob.glob(csv_files_path)
+
+columns_to_extract = ['boardingstopname', 'deboardingstopname'] #抽取上、下車站牌
+
+output_directory = '/Users/ryanma/Desktop/關聯式法則/抽取站牌'
+os.makedirs(output_directory, exist_ok=True)
+
+for file_path in csv_files:
+    current_df = pd.read_csv(file_path, encoding='utf-8')
+    
+    print(f"Processing file: {file_path}")
+    print(f"Columns in current_df: {current_df.columns}")
+    
+    extracted_columns = current_df[columns_to_extract]
+
+    print(f"Shape of extracted_columns: {extracted_columns.shape}")
+
+    file_name = os.path.basename(file_path)
+    output_filename = os.path.join(output_directory, file_name)
+    
+    extracted_columns.to_csv(output_filename, index=False, encoding='utf-8-sig')
+    print(f"Extraction and saving completed. File saved as: {output_filename}")
+
+
+
+import os
+import pandas as pd
+
+input_folder = '/Users/ryanma/Desktop/關聯式法則/抽取站牌'
+output_folder = '/Users/ryanma/Desktop/關聯式法則/調整後分析檔'
+
+for filename in os.listdir(input_folder):    # Iterate over each file in the input folder
+    if filename.endswith(".csv"):
+        input_file_path = os.path.join(input_folder, filename)
+
+        df = pd.read_csv(input_file_path)
+
+        df.reset_index(drop=True, inplace=True)
+
+        output_file_path = os.path.join(output_folder, f"{filename}")
+
+        df.to_csv(output_file_path, index=True)
+
+        print(f"Index reset and saved to {output_file_path}")
