@@ -36,3 +36,8 @@ print(cluster_centers_original)
 print(df.head())
 print("Original Data:")
 print(original_data)
+
+#查看每個集群的數量，加總後與原始數據是否吻合
+for i in range(n_clusters):
+    draw = df[df['類群'] == i]
+    print('第' + str(i) + '群數量：　' + str(len(draw)))
