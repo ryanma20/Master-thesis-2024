@@ -1,0 +1,47 @@
+import requests
+import json
+
+client_id = '61023021l-f319abb5-b546-43e4'
+client_secret = '066bfb65-8b1b-43db-a082-bd7a0d02cd60'
+
+class TDX():
+    def __init__(self, client_id, client_secret):
+        self.client_id = client_id
+        self.client_secret = client_secret
+        self.token_url = 'https://tdx.transportdata.tw/auth/realms/TDXConnect/protocol/openid-connect/token'
+        self.base_url = "https://tdx.transportdata.tw/api"
+        self.endpoint = "/basic/V3/Map/Bus/Network/StopOfRoute/City/Taipei/RouteName/"
+
+    def get_token(self):
+        headers = {'content-type': 'application/x-www-form-urlencoded'}
+        data = {
+            'grant_type': 'client_credentials',
+            'client_id': self.client_id,
+            'client_secret': self.client_secret
+        }
+        response = requests.post(self.token_url, headers=headers, data=data)
+        response.raise_for_status()
+        return response.json()['access_token']
+
+    def get_response(self, route_name):
+        url = f"{self.base_url}{self.endpoint}{route_name}?%24top=3000&%24format=GEOJSON"
+        headers = {'authorization': f'Bearer {self.get_token()}'}
+        response = requests.get(url, headers=headers)
+        response.raise_for_status() 
+        return response.json()
+
+    def save_to_geojson(self, data, filename):
+        with open(filename, 'w', encoding='utf-8') as geojson_file:
+            json.dump(data, geojson_file, ensure_ascii=False)
+
+if __name__ == '__main__':
+    tdx = TDX(client_id, client_secret)
+    
+    route_names = ['681','藍20區','267','521','棕20','北環幹線'] #路線名稱可從資料庫（postgreSQL）洗出來，在此輸入呼叫每條路線
+
+    
+    for route_name in route_names:
+        response_data = tdx.get_response(route_name)
+        geojson_filename = f'tdx_data_{route_name}.geojson'
+        tdx.save_to_geojson(response_data, geojson_filename)
+        print(f"Data for Route Name {route_name} saved to {geojson_filename}")
